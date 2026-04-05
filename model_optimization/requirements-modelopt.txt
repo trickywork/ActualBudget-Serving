@@ -1,0 +1,8 @@
+jupyterlab==4.2.5
+torch==2.5.1
+numpy==2.1.1
+pandas==2.2.3
+onnx==1.17.0
+onnxruntime==1.19.2
+scikit-learn==1.5.2
+matplotlib==3.9.2
