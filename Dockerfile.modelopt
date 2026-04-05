@@ -1,0 +1,17 @@
+# CPU-only Jupyter image for model-level optimization experiments.
+# This is separate from the baseline FastAPI serving image on purpose.
+# The goal is to reproduce a lab-style notebook workflow on a Chameleon CPU VM.
+FROM pytorch/pytorch:2.5.1-cpu
+
+WORKDIR /workspace
+
+# Install notebook/runtime dependencies that are not already in the base image.
+COPY requirements-modelopt.txt /tmp/requirements-modelopt.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-modelopt.txt
+
+# Copy the repo into the container so the notebook can be run immediately.
+COPY . /workspace
+
+EXPOSE 8888
+
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.token="]

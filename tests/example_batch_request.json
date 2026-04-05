@@ -1,0 +1,22 @@
+{
+  "request_id": "batch-demo-1",
+  "top_k": 3,
+  "transactions": [
+    {
+      "transaction_id": "tx-demo-1",
+      "merchant_text": "UBER EATS 1234",
+      "amount": 18.72,
+      "currency": "USD",
+      "transaction_date": "2026-03-25",
+      "account_type": "credit"
+    },
+    {
+      "transaction_id": "tx-demo-2",
+      "merchant_text": "WHOLE FOODS #102",
+      "amount": 84.16,
+      "currency": "USD",
+      "transaction_date": "2026-03-26",
+      "account_type": "checking"
+    }
+  ]
+}
