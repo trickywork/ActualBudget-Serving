@@ -1,46 +1,33 @@
-"""
-Generate synthetic JSONL requests for local and remote benchmarking.
-"""
-
-import argparse
 import json
-import random
-from datetime import date, timedelta
+from pathlib import Path
 
-MERCHANTS = [
-    ("UBER TRIP", "transportation"),
-    ("UBER EATS", "restaurants"),
-    ("WHOLE FOODS", "groceries"),
-    ("STARBUCKS", "coffee"),
-    ("SHELL", "gas"),
-    ("LANDLORD LLC", "rent"),
-    ("NETFLIX", "subscriptions"),
-    ("AMAZON", "shopping"),
-    ("DELTA AIR", "travel"),
-    ("DUKE ENERGY", "utilities"),
+samples = [
+    {
+        "transaction_description": "STARBUCKS STORE 1458 NEW YORK NY",
+        "country": "US",
+        "currency": "USD",
+        "amount": 6.45,
+        "transaction_date": "2026-04-06",
+        "account_type": "credit",
+    },
+    {
+        "transaction_description": "WHOLE FOODS MARKET COLUMBUS OH",
+        "country": "US",
+        "currency": "USD",
+        "amount": 42.10,
+        "transaction_date": "2026-04-06",
+        "account_type": "checking",
+    },
+    {
+        "transaction_description": "SHELL OIL 57444983902",
+        "country": "US",
+        "currency": "USD",
+        "amount": 38.76,
+        "transaction_date": "2026-04-06",
+        "account_type": "credit",
+    },
 ]
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--output", default="tests/generated_requests.jsonl")
-    parser.add_argument("--count", type=int, default=200)
-    args = parser.parse_args()
-
-    start = date(2026, 1, 1)
-    with open(args.output, "w") as f:
-        for i in range(args.count):
-            merchant, _ = random.choice(MERCHANTS)
-            item = {
-                "request_id": f"req-{i:05d}",
-                "transaction_id": f"tx-{i:05d}",
-                "merchant_text": f"{merchant} {random.randint(1000, 9999)}",
-                "amount": round(random.uniform(3.5, 200.0), 2),
-                "currency": "USD",
-                "transaction_date": str(start + timedelta(days=random.randint(0, 90))),
-                "account_type": random.choice(["checking", "credit"]),
-            }
-            f.write(json.dumps(item) + "\n")
-    print(f"Wrote {args.count} requests to {args.output}")
-
-if __name__ == "__main__":
-    main()
+Path("results").mkdir(exist_ok=True)
+with open("results/sample_requests.json", "w") as f:
+    json.dump(samples, f, indent=2)
