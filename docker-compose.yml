@@ -1,0 +1,41 @@
+name: actualbudget-serving
+
+x-common: &common
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  image: actualbudget-serving:latest
+  working_dir: /workspace
+  volumes:
+    - .:/workspace
+  env_file:
+    - .env
+  environment:
+    PYTHONUNBUFFERED: "1"
+    PYTHONPATH: /workspace
+
+services:
+  serve:
+    <<: *common
+    container_name: actualbudget-serving-app
+    command: ["python", "-m", "app.launch"]
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+    environment:
+      SERVICE_HOST: 0.0.0.0
+      SERVICE_PORT: ${SERVICE_PORT:-8000}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      BACKEND_KIND: ${BACKEND_KIND:-onnx_dynamic_quant}
+      MODEL_PATH: ${MODEL_PATH:-/workspace/models/optimized/v2_tfidf_linearsvc_model.dynamic_quant.onnx}
+      SOURCE_MODEL_PATH: ${SOURCE_MODEL_PATH:-/workspace/models/source/v2_tfidf_linearsvc_model.joblib}
+      MODEL_VERSION: ${MODEL_VERSION:-v2_tfidf_linearsvc}
+      CODE_VERSION: ${CODE_VERSION:-dev}
+      TOP_K: ${TOP_K:-3}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    cpus: "${SERVICE_CPUS:-2.0}"
+    mem_limit: "${SERVICE_MEM_LIMIT:-3g}"
+
+  tooling:
+    <<: *common
+    profiles: ["tools"]
+    entrypoint: ["python"]

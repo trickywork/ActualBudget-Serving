@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "transaction_description": "STARBUCKS STORE 1458 NEW YORK NY",
+      "country": "US",
+      "currency": "USD"
+    },
+    {
+      "transaction_description": "AMAZON MARKETPLACE PMTS",
+      "country": "US",
+      "currency": "USD"
+    }
+  ]
+}

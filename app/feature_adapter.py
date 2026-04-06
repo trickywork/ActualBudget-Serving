@@ -1,20 +1,32 @@
+from __future__ import annotations
+
+from typing import Iterable
+
+import pandas as pd
+
 from app.schemas import PredictRequest
 
 
-def normalize_text(text: str) -> str:
-    return " ".join(text.strip().lower().split())
+def choose_description(item: PredictRequest) -> str:
+    return (item.transaction_description or item.merchant_text or "").strip()
 
 
-def build_model_text(req: PredictRequest) -> str:
-    parts = [normalize_text(req.transaction_description)]
+def build_feature_frame(items: Iterable[PredictRequest]) -> pd.DataFrame:
+    rows = []
+    for item in items:
+        rows.append(
+            {
+                "transaction_description": choose_description(item),
+                "country": item.country or "US",
+                "currency": item.currency or "USD",
+            }
+        )
+    return pd.DataFrame(rows, columns=["transaction_description", "country", "currency"])
 
-    if req.country:
-        parts.append(f"country_{req.country.lower()}")
 
-    if req.currency:
-        parts.append(f"currency_{req.currency.lower()}")
-
-    if req.account_type:
-        parts.append(f"account_{req.account_type.lower()}")
-
-    return " ".join(parts)
+def dataframe_to_onnx_inputs(frame: pd.DataFrame) -> dict:
+    inputs = {}
+    for column in ["transaction_description", "country", "currency"]:
+        values = frame[column].fillna("").astype(str).to_numpy().reshape(-1, 1)
+        inputs[column] = values
+    return inputs
