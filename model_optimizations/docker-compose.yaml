@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  model_bench:
+    build:
+      context: ..
+      dockerfile: model_optimizations/Dockerfile
+    container_name: actualbudget-model-bench
+    volumes:
+      - ../results:/workspace/results
+    command: ["python", "/workspace/model_optimizations/scripts/benchmark_model.py"]
