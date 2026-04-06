@@ -1,0 +1,15 @@
+base_url: "http://127.0.0.1:8000"
+predict_path: "/predict"
+predict_batch_path: "/predict_batch"
+timeout_seconds: 10
+
+model_name: "replace_with_training_team_model"
+model_version: "v1"
+
+request_template_path: "example_data/request_single.json"
+response_template_path: "example_data/response_single.json"
+
+worker_candidates: [1, 2, 4]
+concurrency_candidates: [1, 4, 8, 16]
+request_rate_candidates: [10, 20, 40, 50]
+batch_size_candidates: [1, 8, 16, 32, 64]
