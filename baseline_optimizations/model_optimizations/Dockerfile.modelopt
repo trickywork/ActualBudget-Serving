@@ -3,6 +3,17 @@ FROM python:3.11-slim
 WORKDIR /workspace
 
 COPY requirements-modelopt.txt .
+FROM python:3.11-slim
+
+WORKDIR /workspace
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements-modelopt.txt .
+RUN pip install --no-cache-dir -r requirements-modelopt.txt
 RUN pip install --no-cache-dir -r requirements-modelopt.txt
 
 EXPOSE 8888
