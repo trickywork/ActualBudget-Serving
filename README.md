@@ -1,18 +1,5 @@
 # ActualBudget Serving OneFolder
 
-这是一个**单文件夹、一站式、Chameleon 友好**的 ActualBudget Smart Transaction Categorization serving 工程。
-
-目标是：
-
-- 直接解压后可 `git push` 到 GitHub
-- 在 Chameleon `m1.medium` 上 `git clone` 后尽量少步骤运行
-- 优先 CPU 路线、优先稳定、优先低 bug
-- 统一支持 baseline / ONNX / ONNX dynamic quantization
-- system / infra 也给出能实际跑的骨架
-- benchmark 结果直接整理到 `results/` 和 `artifacts/gradescope/`
-
----
-
 ## 目录
 
 ```text
@@ -28,7 +15,7 @@ artifacts/
 results/
   raw/                  原始 benchmark 结果
   summary/              汇总结果
-legacy_notebooks/       你原来和 repo 里的 notebook 备份
+legacy_notebooks/       repo 里的 notebook 备份
 tests/                  轻量 smoke tests
 run.py                  唯一推荐入口
 docker-compose.yml      多容器定义（serve / tooling）
@@ -137,6 +124,7 @@ python3 run.py package
 ## 对应课程要求
 
 ### model-level
+
 已支持：
 
 - `baseline`：sklearn pipeline
@@ -144,6 +132,7 @@ python3 run.py package
 - `onnx_dynamic_quant`：ONNX dynamic quantized pipeline
 
 ### system-level
+
 已支持：
 
 - worker count sweep
@@ -152,6 +141,7 @@ python3 run.py package
 - constant / poisson arrival pattern
 
 ### infrastructure-level
+
 已支持：
 
 - cold start / readiness timing
@@ -163,12 +153,15 @@ python3 run.py package
 ## API
 
 ### `GET /healthz`
+
 基础健康检查
 
 ### `GET /readyz`
+
 模型是否已加载完成
 
 ### `GET /versionz`
+
 返回：
 
 - backend kind
@@ -194,7 +187,7 @@ python3 run.py package
 
 ## 默认推荐提交配置
 
-在 `m1.medium` 上，建议先把下面这组当主提交候选：
+在 `m1.medium` 上，
 
 - `variant = onnx_dynamic_quant`
 - `workers = 2`
@@ -207,8 +200,7 @@ python3 run.py package
 
 ## 说明
 
-1. 这个工程把**运行入口收敛到 `run.py`**，尽量不让你手写 compose 命令。
+1. 这个工程把**运行入口收敛到 `run.py`**
 2. build / prepare / benchmark 仍然都在容器里完成；`run.py` 只负责 orchestration。
 3. `legacy_notebooks/` 只是保留材料，不再是默认运行路径。
-4. 结果目录默认不提交大结果文件；需要时你可以挑 `artifacts/gradescope/` 提交。
-
+4. 结果目录默认不提交大结果文件；需要时可以挑 `artifacts/gradescope/` 提交。
