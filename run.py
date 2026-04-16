@@ -22,9 +22,28 @@ ENV_FILE = REPO_ROOT / ".env"
 SERVICE_CONTAINER_NAME = "actualbudget-serving-app"
 DEFAULT_HOST_URL = "http://127.0.0.1:8000"
 TOOLING_BASE_URL = "http://serve:8000"
+DEFAULT_ENV_EXAMPLE_CONTENT = """HOST_PORT=8000
+SERVICE_PORT=8000
+
+BACKEND_KIND=onnx_dynamic_quant
+MODEL_PATH=/workspace/models/optimized/v2_tfidf_linearsvc_model.dynamic_quant.onnx
+SOURCE_MODEL_PATH=/workspace/models/source/v2_tfidf_linearsvc_model.joblib
+
+MODEL_VERSION=v2_tfidf_linearsvc
+TOP_K=3
+WEB_CONCURRENCY=2
+LOG_LEVEL=info
+
+SERVICE_CPUS=2.0
+SERVICE_MEM_LIMIT=3g
+"""
 
 
 def ensure_env_file() -> None:
+    if not ENV_EXAMPLE.exists():
+        ENV_EXAMPLE.write_text(DEFAULT_ENV_EXAMPLE_CONTENT, encoding="utf-8")
+        print("Created .env.example from built-in defaults")
+
     if not ENV_FILE.exists():
         shutil.copy2(ENV_EXAMPLE, ENV_FILE)
         print(f"Created {ENV_FILE.name} from .env.example")
@@ -68,6 +87,18 @@ def docker_available() -> bool:
         return False
 
 
+def require_docker() -> None:
+    if docker_available():
+        return
+    raise SystemExit(
+        "Docker is required but was not found. On a fresh Chameleon instance, run: \
+"
+        "  sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2\n"
+        "  sudo systemctl enable --now docker\n"
+        "  sudo usermod -aG docker $USER && newgrp docker\n"
+    )
+
+
 def backend_default_model_path(variant: str) -> str:
     if variant == "baseline":
         return "/workspace/models/source/v2_tfidf_linearsvc_model.joblib"
@@ -80,16 +111,19 @@ def backend_default_model_path(variant: str) -> str:
 
 def build() -> None:
     ensure_env_file()
+    require_docker()
     run(compose_cmd("build"))
 
 
 def down() -> None:
     ensure_env_file()
+    require_docker()
     run(compose_cmd("down", "--remove-orphans"), check=False)
 
 
 def logs() -> None:
     ensure_env_file()
+    require_docker()
     run(compose_cmd("logs", "-f", "serve"))
 
 
@@ -135,6 +169,7 @@ def prepare(force: bool = False) -> None:
 
 def up(variant: str, workers: int, cpus: str, mem: str, host_port: int, rebuild: bool = False) -> float:
     ensure_env_file()
+    require_docker()
     model_path = backend_default_model_path(variant)
     env = {
         "BACKEND_KIND": variant,
@@ -250,6 +285,7 @@ class DockerStatsMonitor:
 
 def tooling(module: str, *module_args: str, env: dict | None = None) -> None:
     ensure_env_file()
+    require_docker()
     run(compose_cmd("run", "--rm", "tooling", "-m", module, *module_args), env=env)
 
 

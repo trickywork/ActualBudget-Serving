@@ -35,8 +35,15 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_payload(path: str, batch_size: int) -> tuple[dict, int]:
+def load_payload(path: str, batch_size: int, endpoint: str) -> tuple[dict, int]:
     payload = read_json(path)
+    if endpoint.rstrip("/").endswith("predict_batch"):
+        if isinstance(payload, dict) and "items" in payload:
+            items = payload["items"]
+            return payload, len(items)
+        items = [payload for _ in range(batch_size)]
+        return {"items": items}, len(items)
+
     if batch_size > 1 and "items" not in payload:
         return {"items": [payload for _ in range(batch_size)]}, batch_size
     if isinstance(payload, dict) and "items" in payload:
@@ -73,9 +80,8 @@ def send_one(base_url: str, endpoint: str, payload: dict, timeout: float) -> dic
 
 def main() -> None:
     args = parse_args()
-    payload, items_per_request = load_payload(args.request_json, args.batch_size)
+    payload, items_per_request = load_payload(args.request_json, args.batch_size, args.endpoint)
 
-    # Warmup
     for _ in range(min(8, max(1, args.requests // 10))):
         send_one(args.base_url, args.endpoint, payload, args.timeout)
 

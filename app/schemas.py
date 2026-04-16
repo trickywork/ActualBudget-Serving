@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class PredictRequest(BaseModel):
+class _Model(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+
+class PredictRequest(_Model):
     transaction_description: Optional[str] = Field(default=None, min_length=1)
     merchant_text: Optional[str] = None
 
@@ -17,27 +21,27 @@ class PredictRequest(BaseModel):
     account_type: Optional[str] = None
 
 
-class BatchPredictRequest(BaseModel):
+class BatchPredictRequest(_Model):
     items: List[PredictRequest] = Field(default_factory=list)
 
 
-class CategoryScore(BaseModel):
+class CategoryScore(_Model):
     category_id: str
     score: float
 
 
-class PredictResponse(BaseModel):
+class PredictResponse(_Model):
     predicted_category_id: str
     confidence: float
     top_categories: List[CategoryScore]
     model_version: str
 
 
-class PredictBatchResponse(BaseModel):
+class PredictBatchResponse(_Model):
     items: List[PredictResponse]
 
 
-class HealthResponse(BaseModel):
+class HealthResponse(_Model):
     status: str
     ready: bool
     backend_kind: str
@@ -45,7 +49,7 @@ class HealthResponse(BaseModel):
     code_version: str
 
 
-class VersionResponse(BaseModel):
+class VersionResponse(_Model):
     backend_kind: str
     model_version: str
     code_version: str

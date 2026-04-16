@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 from app.backends.onnx_backend import OnnxBackend
 from app.backends.sklearn_backend import SklearnBackend, load_sklearn_model
@@ -26,14 +28,48 @@ def ensure_directories(root: Path) -> None:
     (root / "results/summary").mkdir(parents=True, exist_ok=True)
 
 
-def export_onnx(source_model_path: Path, target_path: Path, sample_frame) -> None:
+def _sanitize_for_onnx_inplace(obj) -> None:
+    from sklearn.compose import ColumnTransformer
+    from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+    from sklearn.pipeline import FeatureUnion, Pipeline
+
+    if isinstance(obj, (CountVectorizer, TfidfVectorizer)):
+        obj.strip_accents = None
+        return
+
+    if isinstance(obj, Pipeline):
+        for _, step in obj.steps:
+            _sanitize_for_onnx_inplace(step)
+        return
+
+    if isinstance(obj, ColumnTransformer):
+        for _, trans, _ in obj.transformers:
+            if trans not in ("drop", "passthrough"):
+                _sanitize_for_onnx_inplace(trans)
+        if hasattr(obj, "transformers_"):
+            for _, trans, _ in obj.transformers_:
+                if trans not in ("drop", "passthrough"):
+                    _sanitize_for_onnx_inplace(trans)
+        return
+
+    if isinstance(obj, FeatureUnion):
+        for _, trans in obj.transformer_list:
+            _sanitize_for_onnx_inplace(trans)
+        if hasattr(obj, "transformer_list_"):
+            for _, trans in obj.transformer_list_:
+                _sanitize_for_onnx_inplace(trans)
+        return
+
+
+def export_onnx(source_model_path: Path, target_path: Path, sample_frame: pd.DataFrame) -> None:
     from skl2onnx import to_onnx
 
     model = load_sklearn_model(str(source_model_path))
+    _sanitize_for_onnx_inplace(model)
     clf = getattr(model, "named_steps", {}).get("clf")
     options = None
     if clf is not None:
-        options = {id(clf): {"zipmap": False, "raw_scores": True}}
+        options = {id(clf): {"raw_scores": True}}
 
     onx = to_onnx(model, sample_frame, target_opset=17, options=options)
     target_path.parent.mkdir(parents=True, exist_ok=True)
@@ -67,7 +103,7 @@ def main() -> None:
     if not source_model_path.exists():
         raise FileNotFoundError(
             f"Missing source model at {source_model_path}. "
-            "This one-folder bundle expects the training artifact under models/source/."
+            "This serving bundle expects the training artifact under models/source/."
         )
 
     onnx_path = root / "models/optimized/v2_tfidf_linearsvc_model.onnx"

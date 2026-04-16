@@ -1,206 +1,70 @@
-# ActualBudget Serving OneFolder
+# ActualBudget Serving
 
-## 目录
+This repository serves the ActualBudget Smart Transaction Categorization model on Chameleon using a shared FastAPI API for three runtime variants:
+- baseline sklearn
+- ONNX
+- ONNX dynamic quantization
 
-```text
-app/                    FastAPI 服务与 backend 代码
-tools/                  prepare / benchmark / package 的 Python 脚本
-docker/                 单镜像 Dockerfile
-models/
-  source/               训练团队模型源文件（已放入 repo）
-  optimized/            生成的 ONNX 与 quantized ONNX
-artifacts/
-  examples/             input/output sample
-  gradescope/           自动整理出的提交材料
-results/
-  raw/                  原始 benchmark 结果
-  summary/              汇总结果
-legacy_notebooks/       repo 里的 notebook 备份
-tests/                  轻量 smoke tests
-run.py                  唯一推荐入口
-docker-compose.yml      多容器定义（serve / tooling）
-```
+## Zero-error bootstrap on a fresh Chameleon instance
 
----
-
-## 最短上手路径
-
-### 1) 本地整理后推 GitHub
+If Docker is not installed yet:
 
 ```bash
-git init
-git add .
-git commit -m "one-folder serving bundle"
-git remote add origin <your-github-repo>
-git push -u origin main
+sudo apt-get update
+sudo apt-get install -y docker.io docker-compose-v2
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+newgrp docker
 ```
 
-### 2) Chameleon 上运行
+Then clone and bootstrap:
 
 ```bash
-git clone <your-github-repo>
-cd ActualBudget-Serving-OneFolder
-python3 run.py doctor
-python3 run.py prepare
-python3 run.py up
-python3 run.py smoke
-python3 run.py bench-all
-python3 run.py package
+git clone <your-repo>
+cd ActualBudget-Serving
+bash bootstrap_chameleon.sh
 ```
 
----
+The bootstrap script:
+- creates `.env.example` if missing
+- checks Docker and compose
+- builds the image
+- exports ONNX and dynamic-quantized ONNX artifacts
+- starts the recommended serving option
+- runs a smoke test
 
-## 你平时只需要记住这些命令
-
-### 准备模型与镜像
-
-```bash
-python3 run.py prepare
-```
-
-它会做这些事：
-
-- build 单一 Docker image
-- 检查 `models/source/` 下的 sklearn 模型
-- 导出 ONNX
-- 导出 ONNX dynamic quantization
-- 生成 `models/manifest.json`
-- 生成示例 output json
-
-### 启动服务
-
-默认启动最推荐配置：
-
-- variant: `onnx_dynamic_quant`
-- workers: `2`
-- cpus: `2.0`
-- mem: `3g`
+## Recommended serving option
 
 ```bash
-python3 run.py up
-```
-
-### 切换 baseline / ONNX / quantized ONNX
-
-```bash
-python3 run.py up --variant baseline
-python3 run.py up --variant onnx
-python3 run.py up --variant onnx_dynamic_quant
-```
-
-### 改 system-level 参数
-
-```bash
-python3 run.py up --variant onnx_dynamic_quant --workers 1
 python3 run.py up --variant onnx_dynamic_quant --workers 2
-python3 run.py up --variant onnx_dynamic_quant --workers 4
+python3 run.py smoke
 ```
 
-### 改 infra-level 参数
+## Manual workflow
 
 ```bash
-python3 run.py up --variant onnx_dynamic_quant --workers 2 --cpus 1.0 --mem 1g
-python3 run.py up --variant onnx_dynamic_quant --workers 2 --cpus 2.0 --mem 2g
-python3 run.py up --variant onnx_dynamic_quant --workers 2 --cpus 2.0 --mem 3g
+python3 run.py doctor
+python3 run.py build
+python3 run.py prepare
+python3 run.py up --variant onnx_dynamic_quant --workers 2
+python3 run.py smoke
 ```
 
-### 跑 benchmark
+## Main files
 
-```bash
-python3 run.py bench-model
-python3 run.py bench-system
-python3 run.py bench-infra
-python3 run.py bench-all
-```
+- `app/`: FastAPI service and backends
+- `tools/prepare_artifacts.py`: source joblib -> ONNX -> dynamic quant artifacts
+- `tools/benchmark_http.py`: online benchmark for `/predict` and `/predict_batch`
+- `tools/benchmark_arrivals.py`: constant vs poisson arrival benchmark
+- `docker/Dockerfile`: serving image
+- `docker-compose.yml`: serve + tooling containers
+- `run.py`: orchestration entrypoint
 
-### 生成 Gradescope 友好材料
+## Important fixes already included
 
-```bash
-python3 run.py package
-```
-
----
-
-## 对应课程要求
-
-### model-level
-
-已支持：
-
-- `baseline`：sklearn pipeline
-- `onnx`：导出的 ONNX pipeline
-- `onnx_dynamic_quant`：ONNX dynamic quantized pipeline
-
-### system-level
-
-已支持：
-
-- worker count sweep
-- concurrency sweep
-- `/predict_batch` batch size sweep
-- constant / poisson arrival pattern
-
-### infrastructure-level
-
-已支持：
-
-- cold start / readiness timing
-- container CPU / memory usage
-- right-sizing 对比（通过 `--cpus` / `--mem` profile 跑）
-
----
-
-## API
-
-### `GET /healthz`
-
-基础健康检查
-
-### `GET /readyz`
-
-模型是否已加载完成
-
-### `GET /versionz`
-
-返回：
-
-- backend kind
-- model path
-- model version
-- code version / git sha
-- providers
-- hardware summary
-
-### `POST /predict`
-
-请求示例见：
-
-- `artifacts/examples/input_sample.json`
-
-### `POST /predict_batch`
-
-请求示例见：
-
-- `artifacts/examples/batch_input_sample.json`
-
----
-
-## 默认推荐提交配置
-
-在 `m1.medium` 上，
-
-- `variant = onnx_dynamic_quant`
-- `workers = 2`
-- `cpus = 2.0`
-- `mem = 3g`
-
-然后用 `bench-model`、`bench-system`、`bench-infra` 产出结果，再从 `artifacts/gradescope/serving_options_table.csv` 里挑最终表格。
-
----
-
-## 说明
-
-1. 这个工程把**运行入口收敛到 `run.py`**
-2. build / prepare / benchmark 仍然都在容器里完成；`run.py` 只负责 orchestration。
-3. `legacy_notebooks/` 只是保留材料，不再是默认运行路径。
-4. 结果目录默认不提交大结果文件；需要时可以挑 `artifacts/gradescope/` 提交。
+- built-in `.env.example` fallback in `run.py`
+- Docker prerequisite check with clear install instructions
+- pinned compatible ONNX export/runtime versions
+- locale support for ONNX Runtime (`en_US.UTF-8`)
+- ONNX export sanitization for text vectorizers
+- correct `/predict_batch` payload wrapping in `benchmark_http.py`
