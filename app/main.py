@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -41,6 +42,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 Instrumentator().instrument(app).expose(app)
+
+logger = logging.getLogger(__name__)
 
 RUNTIME_DIR = Path(settings.runtime_dir)
 FEEDBACK_LOG = RUNTIME_DIR / "feedback_events.jsonl"
@@ -97,6 +100,13 @@ def _append_jsonl(path: Path, row: Dict[str, Any]) -> None:
     _ensure_runtime_dir()
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def _safe_append_jsonl(path: Path, row: Dict[str, Any]) -> None:
+    try:
+        _append_jsonl(path, row)
+    except Exception:
+        logger.exception("Failed to append JSONL event to %s", path)
 
 
 def _iter_recent_events(path: Path, window_minutes: int):
@@ -316,7 +326,7 @@ def _predict_many(items: list[PredictRequest]) -> list[PredictResponse]:
         for idx in range(len(items))
     ]
     for response in responses:
-        _append_jsonl(
+        _safe_append_jsonl(
             PREDICTION_LOG,
             {
                 "ts": _utc_now_iso(),
@@ -340,7 +350,7 @@ async def request_logging_middleware(request: Request, call_next):
     finally:
         if request.url.path in {"/predict", "/predict_batch"}:
             latency_ms = round((time.perf_counter() - start) * 1000.0, 4)
-            _append_jsonl(
+            _safe_append_jsonl(
                 REQUEST_LOG,
                 {
                     "ts": _utc_now_iso(),
@@ -420,7 +430,7 @@ def feedback(request: FeedbackRequest) -> FeedbackResponse:
         "confidence": request.confidence,
         "candidate_category_ids": request.candidate_category_ids,
     }
-    _append_jsonl(FEEDBACK_LOG, event)
+    _safe_append_jsonl(FEEDBACK_LOG, event)
     feedback_total.labels(selected_category_id=request.applied_category_id).inc()
     if request.applied_category_id == request.predicted_category_id:
         feedback_match_total.inc()
