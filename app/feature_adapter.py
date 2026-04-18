@@ -8,7 +8,12 @@ from app.schemas import PredictRequest
 
 
 def choose_description(item: PredictRequest) -> str:
-    return (item.transaction_description or item.merchant_text or "").strip()
+    return (
+        item.transaction_description
+        or item.transaction_description_clean
+        or item.merchant_text
+        or ""
+    ).strip()
 
 
 def build_feature_frame(items: Iterable[PredictRequest]) -> pd.DataFrame:

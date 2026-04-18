@@ -21,3 +21,5 @@ ENV LANGUAGE=en_US:en
 COPY requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade pip && \
     pip install -r /tmp/requirements.txt
+
+COPY . /workspace

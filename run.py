@@ -55,8 +55,16 @@ def read_json(path: Path):
 
 def append_jsonl(path: Path, row: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(row) + "\n")
+    try:
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row) + "\n")
+    except PermissionError:
+        try:
+            path.unlink(missing_ok=True)
+        except Exception:
+            pass
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row) + "\n")
 
 
 def run(cmd: list[str], env: dict | None = None, capture: bool = False, check: bool = True) -> subprocess.CompletedProcess:
@@ -125,6 +133,18 @@ def logs() -> None:
     ensure_env_file()
     require_docker()
     run(compose_cmd("logs", "-f", "serve"))
+
+
+def monitor_up() -> None:
+    ensure_env_file()
+    require_docker()
+    run(compose_cmd("up", "-d", "serve", "prometheus", "grafana"))
+
+
+def monitor_down() -> None:
+    ensure_env_file()
+    require_docker()
+    run(compose_cmd("stop", "prometheus", "grafana"), check=False)
 
 
 def http_get_json(url: str, timeout: float = 3.0) -> dict:
@@ -541,6 +561,8 @@ def parse_args() -> argparse.Namespace:
 
     sub.add_parser("doctor")
     sub.add_parser("build")
+    sub.add_parser("monitor-up")
+    sub.add_parser("monitor-down")
 
     p_prepare = sub.add_parser("prepare")
     p_prepare.add_argument("--force", action="store_true")
@@ -571,6 +593,10 @@ def main() -> None:
         doctor()
     elif args.command == "build":
         build()
+    elif args.command == "monitor-up":
+        monitor_up()
+    elif args.command == "monitor-down":
+        monitor_down()
     elif args.command == "prepare":
         prepare(force=args.force)
     elif args.command == "up":

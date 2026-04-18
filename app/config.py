@@ -44,6 +44,21 @@ class Settings:
     service_port: int
     web_concurrency: int
     log_level: str
+    runtime_dir: str
+    rollout_context: str
+    monitor_window_minutes: int
+    promotion_min_requests: int
+    promotion_min_feedback: int
+    promotion_max_p95_ms: float
+    promotion_max_error_rate: float
+    promotion_min_top1_acceptance: float
+    promotion_min_top3_acceptance: float
+    rollback_min_requests: int
+    rollback_min_feedback: int
+    rollback_max_p95_ms: float
+    rollback_max_error_rate: float
+    rollback_min_top1_acceptance: float
+    rollback_min_top3_acceptance: float
 
 
 @lru_cache(maxsize=1)
@@ -64,4 +79,19 @@ def get_settings() -> Settings:
         service_port=int(os.getenv("SERVICE_PORT", "8000")),
         web_concurrency=int(os.getenv("WEB_CONCURRENCY", "1")),
         log_level=os.getenv("LOG_LEVEL", "info").strip(),
+        runtime_dir=os.getenv("RUNTIME_DIR", "/workspace/runtime").strip(),
+        rollout_context=os.getenv("ROLLOUT_CONTEXT", "production").strip(),
+        monitor_window_minutes=int(os.getenv("MONITOR_WINDOW_MINUTES", "60")),
+        promotion_min_requests=int(os.getenv("PROMOTION_MIN_REQUESTS", "100")),
+        promotion_min_feedback=int(os.getenv("PROMOTION_MIN_FEEDBACK", "20")),
+        promotion_max_p95_ms=float(os.getenv("PROMOTION_MAX_P95_MS", "100")),
+        promotion_max_error_rate=float(os.getenv("PROMOTION_MAX_ERROR_RATE", "0.01")),
+        promotion_min_top1_acceptance=float(os.getenv("PROMOTION_MIN_TOP1_ACCEPTANCE", "0.60")),
+        promotion_min_top3_acceptance=float(os.getenv("PROMOTION_MIN_TOP3_ACCEPTANCE", "0.80")),
+        rollback_min_requests=int(os.getenv("ROLLBACK_MIN_REQUESTS", "20")),
+        rollback_min_feedback=int(os.getenv("ROLLBACK_MIN_FEEDBACK", "10")),
+        rollback_max_p95_ms=float(os.getenv("ROLLBACK_MAX_P95_MS", "250")),
+        rollback_max_error_rate=float(os.getenv("ROLLBACK_MAX_ERROR_RATE", "0.02")),
+        rollback_min_top1_acceptance=float(os.getenv("ROLLBACK_MIN_TOP1_ACCEPTANCE", "0.45")),
+        rollback_min_top3_acceptance=float(os.getenv("ROLLBACK_MIN_TOP3_ACCEPTANCE", "0.70")),
     )
